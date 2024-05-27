@@ -1,78 +1,152 @@
 import axios from "axios";
-import { ApiUrls } from '../../public/apiurls';
 import { parseStringPromise } from 'xml2js';
+import { chosungIncludes, getChosung, hangulIncludes } from "es-hangul";
 
-export interface Law {
-    lawSerialNumber: string;
-    currentHistoryCode: string;
-    lawNameKorean: string;
-    lawAbbreviation: string;
-    enforcementDate: string;
+export interface ILaw {
+  lawId: number,
+  lawNameKorean: string,
+  lawMST: number,
+  lawDeclareDate: number,
+  lawStartDate: number,
+}
+export interface ILawSearched {
+  lawData:ILaw,
+  lawSearchedIndex?:{
+    start:number,
+    end:number,
+  },
+  isSelected:boolean,
 }
 
-export interface LawSearchResult {
-    totalCnt: number;
-    laws: Law[];
+export interface ILawSearchResult {
+  result:boolean;
+  reason?:string;
+  laws?: Map<number, ILawSearched>;
+}
+
+
+export class LawStorage {
+  Laws:Map<number, ILaw>;
+
+  constructor(laws:ILaw[]) {
+    this.Laws = new Map<number, ILaw>;
+    laws.forEach(law => {
+      this.Laws.set(law.lawId, law);
+    });
+  }
+
+  getSize() {
+    return this.Laws.size;
+  }
 }
 
 export class APIs {
-    static parseLawFromXML(serializedXML:string){
+  static _lawStorage:LawStorage;
 
+  static initiateStorage = (laws:ILaw[]) => {
+    this._lawStorage = new LawStorage(laws);
+  }
+
+  static isStorageInitiated(){
+    return this._lawStorage != null;
+  }
+
+  static isStorageEmpty() {
+    if(!this.isStorageInitiated()) {  
+      return true;
+    } else if(this._lawStorage.getSize() == 0){
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  static getMatchLawsByString(searchString:string):ILawSearchResult {
+    console.log(getChosung(searchString));
+    //실패처리
+    if(this.isStorageEmpty()) {
+      return {
+        result:false,
+        reason:"No Law list loaded."
+      }
     }
 
-    /**
-     * 법률명 리스트를 가져오기위한 함수
-     * @param params OC, target, type은 제외한 나머지 파라미터를 추가해주세요.
-     * @returns 
-     */
-    static async fetchLawList(id:string, page: number, numOfRows: number = 100): Promise<LawSearchResult> {
-        try {
-          const url = 'https://api.example.com/lawList'; // 실제 URL로 변경
-          const params = {
-            OC: id,
-            target: 'law',
-            type: 'XML',
-            page,
-            numOfRows
-          };
-    
-          const response = await axios.get(url, { params });
-          const result = await parseStringPromise(response.data, { explicitArray: false });
-    
-          const totalCnt = parseInt(result.LawSearch.totalCnt, 10);
-          const laws = result.LawSearch.law.map((law: any) => ({
-            lawSerialNumber: law.법령일련번호,
-            currentHistoryCode: law.현행연혁코드,
-            lawNameKorean: law.법령명한글._,
-            lawAbbreviation: law.법령약칭명._,
-            enforcementDate: law.시행일자
-          }));
-    
-          return { totalCnt, laws };
-        } catch (error) {
-          console.error('법률 리스트를 받는 도중 오류가 발생했습니다. :', error);
-          throw error;
+    //성공시
+    //Regex를 통한 테스트
+    const searchedLaws = new Map<number, ILawSearched>();
+    this._lawStorage.Laws.forEach(law => {
+      if(hangulIncludes(law.lawNameKorean, searchString)){
+        // 단어로 검색 시
+        const start = law.lawNameKorean.indexOf(searchString);
+        const matchIndex = {
+          start:-1,
+          end:-1,
         }
+        if(start != -1 ){
+          matchIndex.start = start;
+          matchIndex.end = start + searchString.length - 1;
+        }
+        
+        const lawSearched:ILawSearched = {
+          lawData:law,
+          lawSearchedIndex:matchIndex,
+          isSelected:false,
+        }
+
+        searchedLaws.set(law.lawId, lawSearched);
+        
+      } else if (chosungIncludes(law.lawNameKorean, searchString)){
+        //초성으로 검색시
+        const matchIndex = {
+          start: -1,
+          end: -1
+        }
+
+        const lawChosung = getChosung(law.lawNameKorean);
+        let chosungCnt = 0;
+        let start = -1;
+        let end = -1;
+        for(let i = 0; i < lawChosung.length; i++){
+          if(chosungCnt == searchString.length){
+            break;
+          }
+
+          const currentChosung = lawChosung[i];
+          
+          if(currentChosung == searchString[chosungCnt]){
+            if(chosungCnt == 0){
+              start = i;
+              end = start;
+            } else {
+              end = i;
+            }
+            chosungCnt++;
+          }
+        }
+
+        matchIndex.start = start;
+        matchIndex.end = end;
+        
+        const lawSearched:ILawSearched = {
+          lawData:law,
+          lawSearchedIndex:matchIndex,
+          isSelected:false,
+        }
+
+        searchedLaws.set(law.lawId, lawSearched);
+      }
+    });
+
+    const result:ILawSearchResult = {
+      result:true,
+      laws: searchedLaws
     }
 
-    /**
-     * 법률명 리스트를 전부 가져오기위한 함수
-     * @returns 법률들
-     */
-    static async fetchAllLaws(id:string): Promise<Law[]> {
-        // 최초 호출로 totalCnt 값을 얻음
-        const firstPageResult = await APIs.fetchLawList(id, 1, 20);
-        const totalCount = firstPageResult.totalCnt;
-        const totalPages = Math.ceil(totalCount / 100);
-    
-        let allLaws: Law[] = firstPageResult.laws;
-    
-        // 2페이지부터 나머지 페이지까지 요청
-        for (let page = 2; page <= totalPages; page++) {
-          const result = await APIs.fetchLawList(id, page, 100);
-          allLaws = allLaws.concat(result.laws);
-        }
-    
-        return allLaws;
-    }
+    return result;
+  }
+  
+  getMatchLawsById(lawSerialNumber:number){
+
+  }
 }
+

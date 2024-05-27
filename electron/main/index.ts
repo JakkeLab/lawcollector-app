@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, ipcMain } from 'electron'
+import { app, BrowserWindow, shell, ipcMain, screen } from 'electron'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
@@ -7,7 +7,8 @@ import { dialog } from 'electron'
 import fs from 'node:fs';
 import { update } from './update'
 import { LawAPIConfig } from '../../src/lib/apiconfig';
-import { APIs } from '../../src/lib/apiquery'
+import { APIs, ILaw } from '../../src/lib/apiquery'
+import { parseStringPromise } from 'xml2js'
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -52,6 +53,16 @@ const preload = path.join(__dirname, '../preload/index.mjs')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
 
 async function createWindow() {
+  /* Application Setting */
+  const width = 1280;
+  const height = 1080;
+
+  /* Display and Window position Setting */
+  // const displays = screen.getAllDisplays();
+  // const externalDisplays = displays.filter((display) => display.bounds.x != 0 || display.bounds.y != 0)
+  // const targetDisplay = externalDisplays[1];
+
+  
   win = new BrowserWindow({
     title: 'Main window',
     icon: path.join(process.env.VITE_PUBLIC, 'favicon.ico'),
@@ -64,9 +75,13 @@ async function createWindow() {
       // Read more on https://www.electronjs.org/docs/latest/tutorial/context-isolation
       // contextIsolation: false,
     },
-    width:1280,
-    height:720,
-    resizable:false,
+
+    width:width,
+    height:height,
+    resizable:true,
+    // x:targetDisplay.bounds.x + (targetDisplay.bounds.width - width),
+    // // x:targetDisplay.bounds.x + (targetDisplay.bounds.width - width)*0.5,
+    // y:targetDisplay.bounds.y + (targetDisplay.bounds.height - height)*0.5,
   })
 
   if (VITE_DEV_SERVER_URL) { // #298
@@ -151,40 +166,57 @@ ipcMain.handle('apiconfig-getting-id', (_) => {
   }
 })
 
-ipcMain.handle('api-get-lawlist', async (_) => {
-  try {
-    const allLaws = await APIs.fetchAllLaws(apiConfig.getCurrentId()).then(res => {
-      console.log('All Laws:', res);
-    });
-  } catch (error) {
-    console.error('법률 리스트를 받는 도중 오류가 발생했습니다. :', error);
-    throw error;
-  }
-});
-
 ipcMain.handle('api-get-lawlist-fromfile', async (_) => {
   try {
-    const {canceled, filePaths} = await dialog.showOpenDialog({
+    const { canceled, filePaths } = await dialog.showOpenDialog({
       title: "법령 목록 XML 가져오기",
-      properties: [
-        'openFile',
+      properties: ['openFile'],
+      filters: [
+        { name: 'XML Files', extensions: ['xml'] },
       ],
-      filters:[
-        { name : 'XML Files', extensions:['xml']}
-      ]
-    })
-    
-    if(canceled) {
-      console.log("가져오기 취소.");
-      return [];
-    }
-
-    const xmlData = fs.readFile(filePaths[0], file => {
-      
     });
 
+    if (canceled) {
+      console.log("가져오기 취소.");
+      return false;
+    }
+
+    return new Promise<{ loaded: boolean, laws?: ILaw[], reason?: any, filename?:string }>((resolve, reject) => {
+      fs.readFile(filePaths[0], 'utf-8', async (err, data) => {
+        if (err) {
+          console.error('파일을 읽는 도중 오류가 발생했습니다.', err);
+          reject({ loaded: false, reason: err });
+          return;
+        }
+
+        try {
+          const result = await parseStringPromise(data, { explicitArray: false });
+          const laws = result.현행법령목록.법령;
+          const parsedLaws = laws.map((law:any) => {
+            const lawObject = {
+              lawId: parseInt(law.법령ID),
+              lawNameKorean: law.법령명,
+              lawMST: parseInt(law.법령MST),
+              lawDeclareDate: parseInt(law.공포일자),
+              lawStartDate: parseInt(law.시행일자),
+            }
+
+            return lawObject
+          })
+
+          APIs.initiateStorage(parsedLaws);
+          resolve({ loaded: true, laws: parsedLaws, filename: path.basename(filePaths[0])});
+        } catch (parseError) {
+          reject({ loaded: false, reason: parseError });
+        }
+      });
+    });
   } catch (error) {
     console.error('법률 리스트를 받는 도중 오류가 발생했습니다. :', error);
-    throw error;
+    return { loaded: false, reason: error };
   }
 });
+
+ipcMain.handle('api-search-lawbyname', (_, lawName) => {
+  return APIs.getMatchLawsByString(lawName);
+})

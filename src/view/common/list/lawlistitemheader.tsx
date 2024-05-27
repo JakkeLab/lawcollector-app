@@ -1,26 +1,23 @@
-import React from 'react';
+import React, { ChangeEvent } from 'react';
+import { ILawListItemProps } from './lawlistitemprop';
 
-interface LawListItemProps {
-    dimensions: {
-        widthCb: number;
-        widthLawCode: number;
-    };
-    lawName: string;
-    lawCode: string;
-    checkHandler: () => void;
-}
 
-export const LawListHeader: React.FC<LawListItemProps> = ({ dimensions, lawName, lawCode, checkHandler }) => {
+export default function LawListHeader(
+    {listItemProps}:   
+    {listItemProps:ILawListItemProps}
+) {
     return (
         <div className="flex flex-row">
-            <div style={{ width: dimensions.widthCb }}>
-                <input type="checkbox" onChange={checkHandler} />
+            <div className='w-[32px]'>
+                
             </div>
-            <div style={{ flexGrow: 1 }}>
-                {lawName}
+            <div className='w-[420px]'>
+                법률명
             </div>
-            <div style={{ width: dimensions.widthLawCode }} className='text-end'>
-                {lawCode}
+            <div style={{ width: listItemProps.dimensions.widthLawCode }} className='text-start'>
+                법률코드
+            </div>
+            <div className='w-[16px]'>
             </div>
         </div>
     );

@@ -1,4 +1,8 @@
-.status-alert {
+.service-status-stack {
+    position: absolute;
+}
+
+.status-ok {
     background-color: #68d962;
 }
 
