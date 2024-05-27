@@ -42,7 +42,6 @@ export default function LawList({fileLoadHander}:{fileLoadHander:(arg:{isLoaded:
         setSelectedLaws(lawMap);
     }
 
-
     const searchModeHandler = (searchString:string) => {
         if(searchString.length == 0){
             alert('텍스트를 입력후 검색해 주세요.')
@@ -58,6 +57,12 @@ export default function LawList({fileLoadHander}:{fileLoadHander:(arg:{isLoaded:
             });
         }
     } 
+
+    const fetchLawStructure = () => {
+        const testLaw = Array.from(selectedLaws)[0];
+        const testLawId = testLaw[0];
+        window.electronAPI.fetchLawStructure(testLawId);
+    }
 
     return (
     <div className='flex flex-row w-full mt-2'>
@@ -97,7 +102,7 @@ export default function LawList({fileLoadHander}:{fileLoadHander:(arg:{isLoaded:
                     선택된 법률명
                 </div>
                 <div>
-                    <button>검색하기</button>
+                    <button onClick={fetchLawStructure}>검색하기</button>
                 </div>
             </div>
             <hr className='element-hr-style1 w-[100%]'/>

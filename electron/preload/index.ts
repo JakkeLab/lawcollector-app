@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getLawList:() => ipcRenderer.invoke('api-get-lawlist'),
   getLawListFromFlie:() => ipcRenderer.invoke('api-get-lawlist-fromfile'),
   searchLawByString:(lawName:string) => ipcRenderer.invoke('api-search-lawbyname', lawName),
+  fetchLawStructure:(lawId:number) => ipcRenderer.invoke('api-get-lawstructure', lawId),
 })
 
 

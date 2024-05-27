@@ -3,5 +3,4 @@ export interface ILawListItemProps {
         widthCb: number;
         widthLawCode: number;
     };
-    checkHandler: () => void;
 }

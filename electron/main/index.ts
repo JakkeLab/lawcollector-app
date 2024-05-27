@@ -7,7 +7,7 @@ import { dialog } from 'electron'
 import fs from 'node:fs';
 import { update } from './update'
 import { LawAPIConfig } from '../../src/lib/apiconfig';
-import { APIs, ILaw } from '../../src/lib/apiquery'
+import { APIs, FetchAPIs, ILaw } from '../../src/lib/apiquery'
 import { parseStringPromise } from 'xml2js'
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -219,4 +219,9 @@ ipcMain.handle('api-get-lawlist-fromfile', async (_) => {
 
 ipcMain.handle('api-search-lawbyname', (_, lawName) => {
   return APIs.getMatchLawsByString(lawName);
+})
+
+ipcMain.handle('api-get-lawstructure', (_, lawId) => {
+  console.log(lawId);
+  FetchAPIs.fetchLawStructureById({apiId : apiConfig.getCurrentId(), lawId: lawId})
 })
