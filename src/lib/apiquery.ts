@@ -249,7 +249,7 @@ export class FetchAPIs {
         });
         //#endregion
 
-        console.log('------시행령------')
+        //#region 시행령 파싱 (시행령의 시행규칙, 행정규칙 포함)
         const lawDecreesInfo = lawDecrees.map((res) => {
           const node = LawTree.CreateEmptyTree();
           const header = LawHeader.CreateEmptyHeader();
@@ -392,16 +392,77 @@ export class FetchAPIs {
           //최상위법의 자식법으로 등록
           rootTree.ChildLaw = node.ChildLaw.set(node.LawInfo.Id, node);
         });
-
+        //#endregion
+        
         console.log('------시행규칙------')
         const lawRulesInfo = lawRules.map((res) => {
-          const decreeInfo = res.기본정보[0];
-          const result = {
-            info : decreeInfo,
+          const header = LawHeader.CreateEmptyHeader();
+          const node = LawTree.CreateEmptyTree();
+          const info = res.기본정보[0];
+          
+          //시행규칙의 정보 저장
+          header.Id = info.법령ID[0];
+          header.StartDate = info.시행일자[0];
+          header.LawTitle = info.법령명[0];
+          
+          node.LawInfo = header;
+          node.ParentLaw = rootTree;
+          node.LawType = "법-시행규칙";
+
+          node.LawInfo = header;
+
+          //시행규칙의 행정규칙 저장
+          const hanjungRules:Map<number, LawHanjung> = new Map<number, LawHanjung>();
+          const hanjungs:any[] = res.행정규칙;
+          if(hanjungs){
+            hanjungs.forEach((item) => {
+              const ruleHun:any[] = item.훈령;
+              if(ruleHun) {
+                ruleHun.forEach((item) => {
+                  const rule = LawHanjung.CreateEmptyHanjung();
+                  const id = item.행정규칙ID;
+                  const name = item.행정규칙명;
+                  const startDate = item.시행일자;
+  
+                  const header = LawHeader.CreateEmptyHeader();
+                  header.Id = id;
+                  header.LawTitle = name;
+                  header.StartDate = startDate;
+  
+                  rule.LawInfo = header;
+                  rule.RuleType = '훈령'
+                  hanjungRules.set(id, rule);
+                });
+              }
+
+              const ruleGosi:any[] = item.고시;
+              if(ruleGosi) {
+                ruleGosi.forEach((item) => {
+                  const rule = LawHanjung.CreateEmptyHanjung();
+                  const id = item.행정규칙ID;
+                  const name = item.행정규칙명;
+                  const startDate = item.시행일자;
+
+                  const header = LawHeader.CreateEmptyHeader();
+                  header.Id = id;
+                  header.LawTitle = name;
+                  header.StartDate = startDate;
+
+                  rule.LawInfo = header;
+                  rule.RuleType = '고시'
+                  hanjungRules.set(id, rule);
+                });
+              }
+            })            
           }
-          // return result;
-          return decreeInfo.법령명;
+
+          node.HanjungRules = hanjungRules;
+          
+          node.ParentLaw = rootTree;
+          rootTree.ChildLaw.set(node.LawInfo.Id, node);
         });
+
+        console.log(rootTree);
       });
     } catch (error) {
       console.log(error)
