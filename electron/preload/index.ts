@@ -1,3 +1,4 @@
+import { ILawTree } from '@/model/lawmodel'
 import { ipcRenderer, contextBridge } from 'electron'
 
 // --------- Expose some API to the Renderer process ---------
@@ -29,6 +30,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getLawListFromFlie:() => ipcRenderer.invoke('api-get-lawlist-fromfile'),
   searchLawByString:(lawName:string) => ipcRenderer.invoke('api-search-lawbyname', lawName),
   fetchLawStructure:(lawId:number) => ipcRenderer.invoke('api-get-lawstructure', lawId),
+  fetchLawContent:(lawTree:ILawTree) => ipcRenderer.invoke('api-get-lawcontent', lawTree),
+  exportLawContent:(lawTree:ILawTree) => ipcRenderer.invoke('api-exportaspdf-lawcontent', lawTree),
 })
 
 

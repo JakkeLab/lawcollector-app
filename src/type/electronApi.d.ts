@@ -7,7 +7,9 @@ export interface IElectronAPI {
   getLawList: () => Promise<string>,
   getLawListFromFlie: () => Promise<{loaded:boolean, laws?:ILaw[], reason?:any, filename:string}>,
   searchLawByString: (lawName:string) => Promise<ILawSearchResult>
-  fetchLawStructure: (lawId:number) => Promise<ILawTree>
+  fetchLawStructure: (lawId:number) => Promise<{ result: boolean, lawTree?:ILawTree, reason?:any }>
+  fetchLawContent: (lawRootTrees: ILawTree) => Promise<ILawTree>,
+  exportLawContent:(lawTree:ILawTree) => Promise<{result:boolean, content?:string}>,
 }
   
 declare global {

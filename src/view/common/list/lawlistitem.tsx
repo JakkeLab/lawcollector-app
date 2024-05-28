@@ -11,7 +11,7 @@ export default function LawListItem(
     return (
         <div>
             <div className={`flex flex-row`}>
-                <div className='w-[24px] flex-shrink-0'>
+                <div className='w-[24px] flex-shrink-0 mr-2'>
                     { isAddItems ? <button onClick={sendCheck} className='btn-add text-center'>+</button> 
                                  : <button onClick={sendCheck} className='btn-remove text-center'>-</button>}
                 </div>

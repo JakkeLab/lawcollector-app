@@ -8,7 +8,7 @@ import StatusStack from './view/common/status/statusstack';
 
 function App() {
   const [statusList, setStatusList] = useState<Array<IStatus>>([]);
-
+  
   const fileLoadHandler = (arg: { isLoaded: boolean; reason?: string; }) => {
     if (arg.isLoaded) {
       setStatusList([...statusList, { content: 'File loaded successfully', isAlert: false }]);

@@ -129,30 +129,26 @@ button:focus-visible {
 }
 
 .btn-add {
-  width:16px;
+  width: 16px;
   height: 16px;
   border-radius: 8px;
+  text-align: center;
   background-color: #68d962;
 }
 
 .btn-add:hover {
-  width:16px;
-  height: 16px;
-  border-radius: 8px;
   background-color: #4da149;
 }
 
 .btn-remove {
-  width:16px;
+  width: 16px;
   height: 16px;
   border-radius: 8px;
+  text-align: center;
   background-color: #ff613c;
 }
 
 .btn-remove:hover {
-  width:16px;
-  height: 16px;
-  border-radius: 8px;
   background-color: #c64a2e;
 }
 

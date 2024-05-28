@@ -9,6 +9,9 @@ import { update } from './update'
 import { LawAPIConfig } from '../../src/lib/apiconfig';
 import { APIs, FetchAPIs, ILaw } from '../../src/lib/apiquery'
 import { parseStringPromise } from 'xml2js'
+import { ILawTree, LawTree } from '../../src/model/lawmodel'
+import { PDFApi } from '../../src/lib/exportAsPdf'
+import jsPDF from 'jspdf'
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -221,7 +224,59 @@ ipcMain.handle('api-search-lawbyname', (_, lawName) => {
   return APIs.getMatchLawsByString(lawName);
 })
 
-ipcMain.handle('api-get-lawstructure', (_, lawId) => {
-  console.log(lawId);
-  FetchAPIs.fetchLawStructureById({apiId : apiConfig.getCurrentId(), lawId: lawId})
+ipcMain.handle('api-get-lawstructure', async (_, lawId) => {
+  try {
+    return new Promise<{ result: boolean, lawTree:ILawTree, reason?:any }>((resolve, reject) => {
+      FetchAPIs.fetchLawStructureById({ apiId: apiConfig.getCurrentId(), lawId: lawId }).then((res) => {
+          if(res){
+            resolve({result: true, lawTree:res});
+          } else {
+            reject({result: false, lawTree:res})
+          }
+      })
+    })
+  } catch (error) {
+    console.error("Error fetching law structure:", error);
+    return { result: false, error: error };
+  }
+})
+
+ipcMain.handle('api-get-lawcontent', async (_, lawTree:ILawTree) => {
+  console.log(`Try to get content of ${lawTree.LawInfo.LawTitle}`);
+  const targetTree = APIs.getRegisteredTreeById(lawTree.LawInfo.Id);
+
+  //BFS를 통한 트리 순회 및 업데이트
+  const nodes:ILawTree[] = [];
+  targetTree.GetNodesBFS(nodes);
+  nodes.forEach(async (node) => {
+    const extracted = await FetchAPIs.fetchLawContentByRootLaw({apiId : apiConfig.getCurrentId(), node: targetTree});
+    if(extracted.result){
+      node.Content = extracted.content;
+      console.log(`${node.LawInfo.LawTitle} 본문 업데이트 완료`);
+    } else {
+      console.log(`${node.LawInfo.LawTitle} 본문 업데이트 실패`);
+    }
+    
+    node.HanjungRules.forEach(async (value, key) => {
+      const hanjungContent = await FetchAPIs.fetchHangjungRuleById({apiId: apiConfig.getCurrentId(), id:value.LawInfo.Id})
+      if(hanjungContent.result){
+        value.Content = hanjungContent.content;
+        console.log(`${value.LawInfo.LawTitle} 본문 업데이트 완료`)
+      } else {
+        console.log(`${value.LawInfo.LawTitle} 업데이트 실패`)
+      }
+    })
+  });
+
+  return targetTree;
+});
+
+ipcMain.handle('api-exportaspdf-lawcontent', async (_, lawTree) => {
+  console.log(`Try to export ${lawTree.LawInfo.LawTitle}`);
+  const targetTree = APIs.getRegisteredTreeById(lawTree.LawInfo.Id);
+  if(targetTree.Content){
+    return { result: true, content: targetTree.Content };
+  } else {
+    return { result: false };
+  }
 })
