@@ -48,17 +48,17 @@ export class PDFApi {
         }[];
     }): Promise<Blob> {
         console.log(lawContent);
-        const doc: jsPDF = new jsPDF("p", "mm", "a4");
+        const doc: jsPDF = new jsPDF("p", "mm", "a2");
 
         // base64 폰트 데이터를 등록합니다.
         doc.addFileToVFS('malgun.ttf', FontBase64.malgun);
         doc.addFont('malgun.ttf', 'Malgun', 'normal');
         doc.setFont('Malgun'); // 등록된 폰트로 설정합니다.
 
-        const margin: number = 15;
+        const margin: number = 10;
         const pageHeight: number = doc.internal.pageSize.getHeight();
         const contentWidth: number = doc.internal.pageSize.getWidth() - margin * 2;
-        const lineHeight: number = 12 * 1.2; // 폰트 크기 * 줄 간격
+        const lineHeight: number = 11 * 0.6; // 폰트 크기 * 줄 간격
 
         lawContent.subContents.forEach((content) => {
             const cleanedTitle: string = content.title.replace(/\n\s*\n/g, '\n');
