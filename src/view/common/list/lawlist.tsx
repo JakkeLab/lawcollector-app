@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useState } from "react"
+import { ChangeEvent, useState } from "react"
 import LawListSearchBox from "../../search/lawlistsearchbox";
 import LawListSearchResult from "../../search/lawlistsearchresult";
 import { ILawSearched, ILawSearchResult, ILaw } from "@/lib/apiquery";
@@ -125,11 +125,46 @@ export default function LawList({fileLoadHander}:{fileLoadHander:(arg:{isLoaded:
     }
     
     const exportPdfHandler = async () => {
-        const tree = Array.from(contentAttachedTrees.keys())[0];
-        const res = await window.electronAPI.exportLawContent(tree);
-        if(res.result && res.content){
-            PDFApi.exportTextChunksAsPdf(res.content)
+        const trees = Array.from(contentAttachedTrees.keys());
+        const treeSet = new Set<ILawTree>(trees);
+
+        const folderResult = await window.electronAPI.selecFolder();
+        if (!folderResult || folderResult === "") {
+            console.log('Folder selection was canceled');
+            return;
         }
+        
+        const res = await window.electronAPI.exportMultipleContent(treeSet);
+        const lawContents = await Promise.all(res);
+
+        // Blob 형태로 PDF 생성 및 Base64 문자열로 변환
+        const pdfBuffers = await Promise.all(lawContents.map(async (lawContent) => {
+            const blob = await PDFApi.generatePdfBlob(lawContent);
+            const arrayBuffer = await blob.arrayBuffer();
+            const base64String = arrayBufferToBase64(arrayBuffer);
+            return {
+                base64: base64String,
+                rootLawName: lawContent.rootLawName
+            };
+        }));
+        
+        console.log('---BUFFERS---')
+        console.log(pdfBuffers)
+        // Base64 문자열을 메인 프로세스로 전송하여 파일 저장
+        const saveResult = await window.electronAPI.savePdfs({
+            pdfBuffers,
+            folderPath: folderResult
+        });
+    }
+
+    const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+        let binary = '';
+        const bytes = new Uint8Array(buffer);
+        const len = bytes.byteLength;
+        for (let i = 0; i < len; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return window.btoa(binary);
     }
 
     //#endregion
@@ -159,24 +194,35 @@ export default function LawList({fileLoadHander}:{fileLoadHander:(arg:{isLoaded:
     };
 
     const fetchLawContent = async () => {
-        let itemsToFetch:Set<ILawTree> = new Set<ILawTree>();
-        const checkedItems = checkStates.forEach((value, key) => {
-            if(value){
+        let itemsToFetch: Set<ILawTree> = new Set<ILawTree>();
+
+        // Collect all items that need to be fetched
+        checkStates.forEach((value, key) => {
+            if (value) {
                 itemsToFetch.add(key);
             }
-        })
+        });
 
-        itemsToFetch.forEach(async (tree) => {
-            const updatedTree = await window.electronAPI.fetchLawContent(tree);
-            if(updatedTree){
-                const updatedTrees = new Map<ILawTree, boolean>(contentAttachedTrees);
+        // Fetch all content in parallel
+        const fetchPromises = Array.from(itemsToFetch).map(async (tree) => {
+            return window.electronAPI.fetchLawContent(tree);
+        });
+
+        // Wait for all fetches to complete
+        const fetchedTrees = await Promise.all(fetchPromises);
+
+        // Update state with the fetched content
+        const updatedTrees = new Map<ILawTree, boolean>(contentAttachedTrees);
+        fetchedTrees.forEach((updatedTree) => {
+            if (updatedTree) {
                 updatedTrees.set(updatedTree, false);
-                setContentAttachedLaws(updatedTrees);
-                console.log("Trees Updated");
             } else {
                 console.log("No Updated Trees");
             }
         });
+
+        setContentAttachedLaws(updatedTrees);
+        console.log("Trees Updated");
     };
     //#endregion
 
@@ -267,9 +313,6 @@ export default function LawList({fileLoadHander}:{fileLoadHander:(arg:{isLoaded:
                     <div className='flex-grow align-center self-center'>
                         <input type="checkbox" onChange={handleAllCheckboxExportItems}/> 전체선택
                     </div>
-                    <div className='self-end mr-2'>
-                        <button>XML 내보내기</button>
-                    </div>
                     <div className='self-end'>
                         <button onClick={exportPdfHandler}>PDF 내보내기</button>
                     </div>
@@ -283,4 +326,8 @@ export default function LawList({fileLoadHander}:{fileLoadHander:(arg:{isLoaded:
         </div>
       </div>
     )
+}
+
+function arrayBufferToBase64(arrayBuffer: ArrayBuffer) {
+    throw new Error("Function not implemented.");
 }

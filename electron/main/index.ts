@@ -12,6 +12,7 @@ import { parseStringPromise } from 'xml2js'
 import { ILawTree, LawTree } from '../../src/model/lawmodel'
 import { PDFApi } from '../../src/lib/exportAsPdf'
 import jsPDF from 'jspdf'
+import archiver from 'archiver'
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -241,42 +242,137 @@ ipcMain.handle('api-get-lawstructure', async (_, lawId) => {
   }
 })
 
-ipcMain.handle('api-get-lawcontent', async (_, lawTree:ILawTree) => {
+ipcMain.handle('api-get-lawcontent', async (_, lawTree: ILawTree) => {
   console.log(`Try to get content of ${lawTree.LawInfo.LawTitle}`);
   const targetTree = APIs.getRegisteredTreeById(lawTree.LawInfo.Id);
 
-  //BFS를 통한 트리 순회 및 업데이트
-  const nodes:ILawTree[] = [];
+  // BFS를 통한 트리 순회 및 업데이트
+  const nodes: ILawTree[] = [];
   targetTree.GetNodesBFS(nodes);
-  nodes.forEach(async (node) => {
-    const extracted = await FetchAPIs.fetchLawContentByRootLaw({apiId : apiConfig.getCurrentId(), node: targetTree});
-    if(extracted.result){
-      node.Content = extracted.content;
-      console.log(`${node.LawInfo.LawTitle} 본문 업데이트 완료`);
-    } else {
-      console.log(`${node.LawInfo.LawTitle} 본문 업데이트 실패`);
-    }
-    
-    node.HanjungRules.forEach(async (value, key) => {
-      const hanjungContent = await FetchAPIs.fetchHangjungRuleById({apiId: apiConfig.getCurrentId(), id:value.LawInfo.Id})
-      if(hanjungContent.result){
-        value.Content = hanjungContent.content;
-        console.log(`${value.LawInfo.LawTitle} 본문 업데이트 완료`)
+
+  // Fetch content for all nodes
+  const nodePromises = nodes.map(async (node) => {
+      const extracted = await FetchAPIs.fetchLawContentByRootLaw({ apiId: apiConfig.getCurrentId(), node: targetTree });
+      if (extracted.result) {
+          node.Content = extracted.content;
+          console.log(`${node.LawInfo.LawTitle} 본문 업데이트 완료`);
       } else {
-        console.log(`${value.LawInfo.LawTitle} 업데이트 실패`)
+          console.log(`${node.LawInfo.LawTitle} 본문 업데이트 실패`);
       }
-    })
+
+      // Fetch content for Hanjung rules
+      const hanjungPromises = Array.from(node.HanjungRules.values()).map(async (value) => {
+          const hanjungContent = await FetchAPIs.fetchHangjungRuleById({ apiId: apiConfig.getCurrentId(), id: value.LawInfo.Id });
+          if (hanjungContent.result) {
+              value.Content = hanjungContent.content;
+              console.log(`${value.LawInfo.LawTitle} 본문 업데이트 완료`);
+          } else {
+              console.log(`${value.LawInfo.LawTitle} 업데이트 실패`);
+          }
+      });
+
+      // Wait for all Hanjung rule content fetches to complete
+      await Promise.all(hanjungPromises);
   });
+
+  // Wait for all node content fetches to complete
+  await Promise.all(nodePromises);
 
   return targetTree;
 });
 
-ipcMain.handle('api-exportaspdf-lawcontent', async (_, lawTree) => {
-  console.log(`Try to export ${lawTree.LawInfo.LawTitle}`);
-  const targetTree = APIs.getRegisteredTreeById(lawTree.LawInfo.Id);
-  if(targetTree.Content){
-    return { result: true, content: targetTree.Content };
+ipcMain.handle('api-exportaspdf-lawcontent', async (_, lawTrees:Set<ILawTree>) => {
+
+  const lawContents:{ 
+    rootLawName:string, 
+    subContents: {title:string, content:string}[]
+  }[] = [];
+  
+  lawTrees.forEach((tree) => {
+    //최상위법 트리 추출
+    console.log(`Try to export ${tree.LawInfo.LawTitle}`);
+    const targetTree = APIs.getRegisteredTreeById(tree.LawInfo.Id);
+    let lawContent:{ 
+      rootLawName:string, 
+      subContents: {title:string, content:string}[]
+    } = {
+      rootLawName: '',
+      subContents: []
+    };
+
+    lawContent.rootLawName = tree.LawInfo.LawTitle;
+    
+    const nodes:ILawTree[] = [];
+    targetTree.GetNodesBFS(nodes);
+    
+    nodes.forEach((node) => {
+      //법(시행령, 시행규칙)의 본문 추가
+      const subContent = {
+        title: node.LawInfo.LawTitle,
+        content: node.Content ? node.Content: "",
+      }
+      lawContent.subContents.push(subContent);
+
+      //행정규칙의 본문 추가
+      node.HanjungRules.forEach((rule) => {
+        const ruleContent = {
+          title: rule.LawInfo.LawTitle,
+          content: rule.Content ? rule.Content : ""
+        };
+        
+        lawContent.subContents.push(ruleContent);
+      });
+    })
+    lawContents.push(lawContent);
+  })
+  
+  return lawContents;
+})
+
+ipcMain.handle('fs-set-folderpath', async (_) => {
+  if(win){
+    const result = await dialog.showOpenDialog(win, {
+      properties: ['openDirectory'],
+    });
+  
+    if (result.canceled) {
+      return null;
+    } else {
+      return result.filePaths[0];
+    }
   } else {
-    return { result: false };
+    return null;
   }
 })
+
+ipcMain.handle('save-pdfs', async (_, { pdfBuffers, folderPath }) => {
+  console.log('---SAVE PDFS---');
+  console.log(pdfBuffers);
+  console.log(folderPath);
+  
+  for (const { base64, rootLawName } of pdfBuffers) {
+    const buffer = Buffer.from(base64, 'base64');
+    const fileName = `${rootLawName}_${getCurrentDateTimeString()}_${generateRandomString(8)}.pdf`;
+    const pdfPath = path.join(folderPath, fileName);
+    fs.writeFileSync(pdfPath, buffer);
+}
+return 'PDFs saved successfully';
+});
+
+/* Custom Functions */
+
+function getCurrentDateTimeString(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  const milliseconds = String(now.getMilliseconds()).padStart(2, '0');
+  return `${year}${month}${day}-${hours}${minutes}${seconds}${milliseconds}`;
+}
+
+function generateRandomString(length: number): string {
+  return Math.random().toString(36).substring(2, 2 + length);
+}

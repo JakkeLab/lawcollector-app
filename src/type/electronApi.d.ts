@@ -9,7 +9,9 @@ export interface IElectronAPI {
   searchLawByString: (lawName:string) => Promise<ILawSearchResult>
   fetchLawStructure: (lawId:number) => Promise<{ result: boolean, lawTree?:ILawTree, reason?:any }>
   fetchLawContent: (lawRootTrees: ILawTree) => Promise<ILawTree>,
-  exportLawContent:(lawTree:ILawTree) => Promise<{result:boolean, content?:string}>,
+  exportMultipleContent:(lawTrees:Set<ILawTree>) => Promise<{ rootLawName:string, subContents: {title:string, content:string}[]}[]>,
+  selecFolder:() => Promise<string>,
+  savePdfs: (data: { pdfBuffers: { base64: string, rootLawName: string }[], folderPath: string }) => Promise<string>,
 }
   
 declare global {

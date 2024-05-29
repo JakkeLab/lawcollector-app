@@ -571,49 +571,49 @@ export class FetchAPIs {
     }
   }
 
-  static async fetchLawContentByRootLaw(apiParams:{apiId:string, node:ILawTree}):Promise<{result:boolean, content?:string}> {
+  static async fetchLawContentByRootLaw(apiParams: { apiId: string, node: ILawTree }): Promise<{ result: boolean, content?: string }> {
     const url = 'http://www.law.go.kr/DRF/lawService.do';
     const params = {
-      OC : apiParams.apiId,
-      target: 'law',
-      type: 'XML',
-      ID: apiParams.node.LawInfo.Id,
-    }
+        OC: apiParams.apiId,
+        target: 'law',
+        type: 'XML',
+        ID: apiParams.node.LawInfo.Id,
+    };
 
     const response = await axios.get(url, { params });
     const extractedText = await this.extractSections(response.data);
-    if(extractedText){
-      return {
-        result: true,
-        content: extractedText
-      }
+    if (extractedText) {
+        return {
+            result: true,
+            content: extractedText
+        };
     } else {
-      return {
-        result:false,
-      }
+        return {
+            result: false,
+        };
     }
   }
 
-  static async fetchHangjungRuleById(apiParams:{apiId:string, id:number}):Promise<{result:boolean, content?:string}>{
+  static async fetchHangjungRuleById(apiParams: { apiId: string, id: number }): Promise<{ result: boolean, content?: string }> {
     const url = 'http://www.law.go.kr/DRF/lawService.do';
     const params = {
-      OC : apiParams.apiId,
-      target: 'admrul',
-      type: 'XML',
-      LID: apiParams.id,
-    }
+        OC: apiParams.apiId,
+        target: 'admrul',
+        type: 'XML',
+        LID: apiParams.id,
+    };
 
     const response = await axios.get(url, { params });
     const extractedText = await this.extractSections(response.data);
-    if(extractedText){
-      return {
-        result: true,
-        content: extractedText
-      }
+    if (extractedText) {
+        return {
+            result: true,
+            content: extractedText
+        };
     } else {
-      return {
-        result:false,
-      }
+        return {
+            result: false,
+        };
     }
   }
 

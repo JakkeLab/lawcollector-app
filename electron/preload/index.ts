@@ -31,7 +31,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   searchLawByString:(lawName:string) => ipcRenderer.invoke('api-search-lawbyname', lawName),
   fetchLawStructure:(lawId:number) => ipcRenderer.invoke('api-get-lawstructure', lawId),
   fetchLawContent:(lawTree:ILawTree) => ipcRenderer.invoke('api-get-lawcontent', lawTree),
-  exportLawContent:(lawTree:ILawTree) => ipcRenderer.invoke('api-exportaspdf-lawcontent', lawTree),
+  selecFolder:() => ipcRenderer.invoke('fs-set-folderpath'),
+  exportMultipleContent:(lawTrees:Set<ILawTree>) => ipcRenderer.invoke('api-exportaspdf-lawcontent', lawTrees),
+  savePdfs: (data: { pdfBuffers: { base64: string, rootLawName: string }[], folderPath: string }) => ipcRenderer.invoke('save-pdfs', data),
 })
 
 
