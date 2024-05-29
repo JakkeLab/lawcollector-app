@@ -21,7 +21,7 @@ export default function ExportItemList({
     })
 
     return (
-        <div className="w-full flex flex-col">
+        <div className="w-full flex flex-col element-scrollable-div">
             {treeRootElements}
         </div>
     )

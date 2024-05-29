@@ -341,7 +341,3 @@ export default function LawList({fileLoadHander, fileSaveStateHandler}:
       </div>
     )
 }
-
-function arrayBufferToBase64(arrayBuffer: ArrayBuffer) {
-    throw new Error("Function not implemented.");
-}
