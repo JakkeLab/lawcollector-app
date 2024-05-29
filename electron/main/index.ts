@@ -356,7 +356,7 @@ ipcMain.handle('save-pdfs', async (_, { pdfBuffers, folderPath }) => {
     const pdfPath = path.join(folderPath, fileName);
     fs.writeFileSync(pdfPath, buffer);
 }
-return 'PDFs saved successfully';
+  return 'Success';
 });
 
 /* Custom Functions */

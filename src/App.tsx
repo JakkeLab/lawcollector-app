@@ -17,6 +17,14 @@ function App() {
     }
   };
 
+  const fileSaveStateHandler = (arg:{ isExported: boolean, reason?: string;}) => {
+    if(arg.isExported){
+      setStatusList([...statusList, {content: 'Exported PDFs successfully', isAlert: false}]);
+    } else {
+      setStatusList([...statusList, {content: 'Failed to export PDFs', isAlert: true}]);
+    }
+  }
+
   const removeStatusHandler = (index: number) => {
     const newList = statusList.filter((_, i) => i !== index);
     setStatusList(newList);
@@ -25,7 +33,7 @@ function App() {
   return (
     <div className='App'>
       <ViewMain/>
-      <LawList fileLoadHander={fileLoadHandler}/>
+      <LawList fileLoadHander={fileLoadHandler} fileSaveStateHandler={fileSaveStateHandler}/>
       <StatusStack statusList={statusList} removeStatusHandler={removeStatusHandler} />
     </div>
   )

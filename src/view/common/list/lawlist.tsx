@@ -10,7 +10,8 @@ import TreeRootList from "../tree/treeRootList";
 import ExportItemList from "@/view/exportitems/exportitemlist";
 import { PDFApi } from "@/lib/exportAsPdf";
 
-export default function LawList({fileLoadHander}:{fileLoadHander:(arg:{isLoaded:boolean, reason?:string}) => void}) {
+export default function LawList({fileLoadHander, fileSaveStateHandler}:
+    {fileLoadHander:(arg:{isLoaded:boolean, reason?:string}) => void, fileSaveStateHandler:(arg:{ isExported: boolean, reason?: string;}) => void}) {
     const [currentFilName, setFileName] = useState('');
     const [searchedLaws, setSearchedLaws] = useState<ILawSearched[]>([]);
     const [selectedLaws, setSelectedLaws] = useState<Map<number, ILaw>>(new Map<number, ILaw>());
@@ -148,13 +149,15 @@ export default function LawList({fileLoadHander}:{fileLoadHander:(arg:{isLoaded:
             };
         }));
         
-        console.log('---BUFFERS---')
-        console.log(pdfBuffers)
         // Base64 문자열을 메인 프로세스로 전송하여 파일 저장
         const saveResult = await window.electronAPI.savePdfs({
             pdfBuffers,
             folderPath: folderResult
         });
+
+        if(saveResult && saveResult == 'Success'){
+            fileSaveStateHandler({isExported:true})
+        }
     }
 
     const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
@@ -173,24 +176,34 @@ export default function LawList({fileLoadHander}:{fileLoadHander:(arg:{isLoaded:
     const fetchLawStructure = async () => {
         console.log('트리검색');
         const lawIds = Array.from(selectedLaws.keys());
-        const treeCheckStates = new Map<ILawTree, boolean>(checkStates);
-        // 모든 비동기 작업을 배열에 모아둡니다.
-        for (const id of lawIds) {
-            window.electronAPI.fetchLawStructure(id).then((res) => {
-                if (!res) {
-                    console.log("Fetch Undefined");
-                    return;
-                }
-                if (res.result && res.lawTree) {
-                    treeCheckStates.set(res.lawTree, false);
-                    console.log("Succeeded");
-                    console.log(res.lawTree);
-                    changeCheckStates(treeCheckStates);
-                } else {
-                    console.log("Failed");
+    
+        const promises = lawIds.map(async (id) => {
+            const res = await window.electronAPI.fetchLawStructure(id);
+            if (!res) {
+                console.log("Fetch Undefined");
+                return;
+            }
+            if (res.result && res.lawTree) {
+                console.log("Succeeded");
+                console.log(res.lawTree);
+                return res.lawTree;
+            } else {
+                console.log("Failed");
+            }
+        });
+    
+        const results = await Promise.all(promises);
+    
+        // 상태 업데이트를 함수 기반으로 처리합니다.
+        changeCheckStates(prevState => {
+            const newState = new Map(prevState);
+            results.forEach(lawTree => {
+                if (lawTree) {
+                    newState.set(lawTree, false);
                 }
             });
-        }
+            return newState;
+        });
     };
 
     const fetchLawContent = async () => {
