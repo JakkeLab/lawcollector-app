@@ -31,7 +31,11 @@ function App() {
   };
 
   return (
-    <div className='App'>
+    <div className='App' style={{
+      backgroundSize: 'contain',
+      backgroundPosition:'center',
+      backgroundRepeat:'no-repeat',
+    }}>
       <ViewMain/>
       <LawList fileLoadHander={fileLoadHandler} fileSaveStateHandler={fileSaveStateHandler}/>
       <StatusStack statusList={statusList} removeStatusHandler={removeStatusHandler} />

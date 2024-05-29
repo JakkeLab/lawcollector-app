@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import './mainstyles.css';
+import '../../index.css';
 
 export default function ViewMain() {
     const [isSettingIdNow, toggleSettingId] = useState<boolean>(false);
@@ -40,9 +40,9 @@ export default function ViewMain() {
                     <label>한국 법령정보 수집기</label>
                 </div>
                 <div className="flex">
-                    <button className="w-[50px] h-[25px] self-end align-end" onClick={showSettingIdField}> Id 설정</button>
+                    <button className="w-[70px] h-[25px] self-end align-end element-button" onClick={showSettingIdField}> Id 설정</button>
                     {isSettingIdNow && <input type="text" className='w-[120px] h-[20px] ml-1 self-end align-end element-input-text' id="api-id" ref={inputRef} />}
-                    {isSettingIdNow && <button className="w-[50px] h-[25px] ml-1 self-end align-end" onClick={handleSetApiId}>저장</button>}
+                    {isSettingIdNow && <button className="w-[50px] h-[25px] ml-1 self-end align-end element-button" onClick={handleSetApiId}>저장</button>}
                 </div>
             </div>
             <hr className="element-hr-style1" />

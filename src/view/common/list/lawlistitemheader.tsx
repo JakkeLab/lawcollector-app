@@ -1,6 +1,6 @@
 import React, { ChangeEvent } from 'react';
 import { ILawListItemProps } from './lawlistitemprop';
-
+import '../../../index.css';
 
 export default function LawListHeader(
     {listItemProps}:   
@@ -17,7 +17,7 @@ export default function LawListHeader(
             <div style={{ width: listItemProps.dimensions.widthLawCode }} className='text-start'>
                 법률코드
             </div>
-            <div className='w-[16px]'>
+                <div className='w-[16px]'>
             </div>
         </div>
     );

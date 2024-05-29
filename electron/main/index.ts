@@ -1,5 +1,4 @@
 import { app, BrowserWindow, shell, ipcMain, screen } from 'electron'
-import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import os from 'node:os'
@@ -10,10 +9,6 @@ import { LawAPIConfig } from '../../src/lib/apiconfig';
 import { APIs, FetchAPIs, ILaw } from '../../src/lib/apiquery'
 import { parseStringPromise } from 'xml2js'
 import { ILawTree, LawTree } from '../../src/model/lawmodel'
-import { PDFApi } from '../../src/lib/exportAsPdf'
-import jsPDF from 'jspdf'
-import archiver from 'archiver'
-const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 

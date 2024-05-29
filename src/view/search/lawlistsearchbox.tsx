@@ -1,4 +1,5 @@
 import { MouseEvent } from "react"
+import '../../index.css';
 
 export default function LawListSearchBox({searchTextHandler}:{searchTextHandler:(text:string) => void}) {
     const inputChangeHandler = (e:MouseEvent<HTMLButtonElement>) => {
@@ -16,7 +17,7 @@ export default function LawListSearchBox({searchTextHandler}:{searchTextHandler:
                     <input type="text" placeholder="여기에 법령 입력.." className="w-full element-input-style1" id="lawlist-input"/>
                 </div>
                 <div>
-                    <button className="w-[40px]" onClick={inputChangeHandler}>검색</button>
+                    <button className="w-[40px] element-button" onClick={inputChangeHandler}>검색</button>
                 </div>
             </div>
         </div>

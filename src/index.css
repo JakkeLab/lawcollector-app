@@ -128,6 +128,10 @@ button:focus-visible {
   transition: 0.2s;
 }
 
+.element-button{
+  background-color: #80A1F8;
+}
+
 .btn-add {
   width: 16px;
   height: 16px;

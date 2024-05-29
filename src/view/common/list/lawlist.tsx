@@ -9,6 +9,7 @@ import { ILawTree } from "@/model/lawmodel";
 import TreeRootList from "../tree/treeRootList";
 import ExportItemList from "@/view/exportitems/exportitemlist";
 import { PDFApi } from "@/lib/exportAsPdf";
+import '../../../index.css';
 
 export default function LawList({fileLoadHander, fileSaveStateHandler}:
     {fileLoadHander:(arg:{isLoaded:boolean, reason?:string}) => void, fileSaveStateHandler:(arg:{ isExported: boolean, reason?: string;}) => void}) {
@@ -22,7 +23,7 @@ export default function LawList({fileLoadHander, fileSaveStateHandler}:
     const widthSet:ILawListItemProps = {
         dimensions: {
             widthCb: 30,
-            widthLawCode: 80,
+            widthLawCode: 90,
         },
     }
 
@@ -282,7 +283,7 @@ export default function LawList({fileLoadHander, fileSaveStateHandler}:
                     선택된 법률명
                 </div>
                 <div>
-                    <button onClick={fetchLawStructure}>트리검색</button>
+                    <button onClick={fetchLawStructure} className="element-button">트리검색</button>
                 </div>
             </div>
             <hr className='element-hr-style1 w-[100%]'/>
@@ -304,7 +305,7 @@ export default function LawList({fileLoadHander, fileSaveStateHandler}:
                         <input type="checkbox" onChange={handleAllCheckbox}/> 전체선택
                     </div>
                     <div className='self-end'>
-                        <button onClick={fetchLawContent}>본문수집</button>
+                        <button onClick={fetchLawContent} className="element-button">본문수집</button>
                     </div>
                 </div>
                 <hr className='element-hr-style1 w-[100%]'/>
@@ -327,7 +328,7 @@ export default function LawList({fileLoadHander, fileSaveStateHandler}:
                         <input type="checkbox" onChange={handleAllCheckboxExportItems}/> 전체선택
                     </div>
                     <div className='self-end'>
-                        <button onClick={exportPdfHandler}>PDF 내보내기</button>
+                        <button onClick={exportPdfHandler} className="element-button">PDF 내보내기</button>
                     </div>
                 </div>
                 <hr className='element-hr-style1 w-[100%]'/>
